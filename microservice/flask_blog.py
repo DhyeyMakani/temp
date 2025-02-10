@@ -1,14 +1,14 @@
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
-from bson import ObjectId  # Convert ObjectId for JSON response
+from bson import ObjectId  # convert objectid for JSON response
 import requests
 
 app = Flask(__name__)
 
-# Connect to MongoDB
+# conn. to MongoDB
 client = MongoClient("mongodb://localhost:27017/")
-db = client["my_database"]  # Match with Spring Boot
-collection = db["users"]  # Ensure same collection as Spring Boot
+db = client["my_database"]  # match with the spring boot
+collection = db["users"]  # ensure same collection as spring boot
 
 @app.route("/")
 def home():
@@ -58,22 +58,22 @@ def form():
 @app.route("/submit", methods=["POST"])
 def submit():
     try:
-        # Accept JSON data
+        # accept JSON data
         if request.is_json:
             data = request.get_json()
         else:
-            # Accept form-data input
+            # accept form-data input
             data = {
                 "name": request.form.get("name"),
                 "age": int(request.form.get("age")),
                 "city": request.form.get("city")
             }
 
-        # Validate input
+        # validate input
         if not all(key in data for key in ("name", "age", "city")):
             return jsonify({"error": "Missing required fields"}), 400
 
-        # Save data to MongoDB
+        # save data to mongoDB
         result = collection.insert_one(data)
         data["_id"] = str(result.inserted_id)
 
@@ -84,15 +84,15 @@ def submit():
 
 @app.route("/users", methods=["GET"])
 def get_users():
-    """Retrieve all users from MongoDB."""
+    """retrieve all users from mongoDB"""
     users = list(collection.find({}, {"_id": 1, "name": 1, "age": 1, "city": 1}))
     for user in users:
-        user["_id"] = str(user["_id"])  # Convert ObjectId to string
+        user["_id"] = str(user["_id"])  # conv. objectid to string
     return jsonify(users)
 
 @app.route("/user/<id>", methods=["GET"])
 def get_user(id):
-    """Retrieve a single user by ID."""
+    """retrieve a single user by id"""
     try:
         user = collection.find_one({"_id": ObjectId(id)}, {"_id": 1, "name": 1, "age": 1, "city": 1})
         if user:
@@ -104,13 +104,13 @@ def get_user(id):
 
 @app.route('/spring-hello', methods=['GET'])
 def call_spring():
-    """Call the Spring Boot API to fetch hello message"""
+    """call the spring boot API to fetch hello message"""
     try:
         response = requests.get("http://localhost:8080/api/hello", timeout=10)
         print("Spring Boot response status:", response.status_code)
         print("Spring Boot raw response:", response.text)  # Print raw response for debugging
 
-        # Ensure Spring Boot is returning valid JSON
+        # ensure spring boot is returning valid JSON
         return response.json()
     except requests.exceptions.RequestException as e:
         return jsonify({"error": "Failed to connect to Spring Boot", "details": str(e)}), 500
